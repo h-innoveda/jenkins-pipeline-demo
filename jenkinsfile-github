@@ -31,14 +31,14 @@ def stages(){
     stage("creating test file"){
         bat'''
         echo --^> creating file of the current build %BUILD_NUMBER% ^<--
-        echo Hello from the automatically generated txt file from jenkins job 1> demo-folder\%BUILD_NUMBER%.txt
+        echo Hello from the automatically generated txt file from jenkins job 1> demo-folder\\%BUILD_NUMBER%.txt
         '''
     }
 
     stage("showing content"){
         bat'''
         echo --^> showing content of text file ^<--
-        type demo-folder\%BUILD_NUMBER%.txt
+        type demo-folder\\%BUILD_NUMBER%.txt
         '''
     }
 
