@@ -48,10 +48,6 @@ def stages(){
         dir
         '''
     }
-
-    stage("Clean Workspace After"){
-        cleanWs()
-    }
 }
 
 return this
