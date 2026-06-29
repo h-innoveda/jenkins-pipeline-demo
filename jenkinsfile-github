@@ -1,45 +1,50 @@
 def stages(){
-    
+
     stage("Introduction"){
         bat'''
         echo --- Hello from Jenkins file GitHub ---
         jenkins-pipeline-demo\\run.bat
         '''
     }
-    
+
     stage("Current path"){
         bat'''
-        echo --> Printing Current path <--
+        echo --^> Printing Current path ^<--
         cd
         '''
     }
+
     stage("List Directory"){
-    bat'''
-    echo --> listing file/folder exist in current directory<---
-    dir
-    '''
+        bat'''
+        echo --^> listing file/folder exist in current directory ^<---
+        dir
+        '''
     }
+
     stage("create demofolder"){
         bat'''
-        echo --> credting Demo folder <--
+        echo --^> creating Demo folder ^<--
         mkdir demo-folder
         '''
     }
+
     stage("creating test file"){
         bat'''
-        echo --> credting file of the current %BUILD_NUMBER% <--
-        echo Hello from the automatically generated txt file from jenkins job > demo-folder\\%BUILD_NUMBER%.txt
+        echo --^> creating file of the current build %BUILD_NUMBER% ^<--
+        echo Hello from the automatically generated txt file from jenkins job 1> demo-folder\%BUILD_NUMBER%.txt
         '''
     }
-    stage("showing content "){
+
+    stage("showing content"){
         bat'''
-        echo --> showing content of text file <--
-        type demo-folder\\%BUILD_NUMBER%.txt
+        echo --^> showing content of text file ^<--
+        type demo-folder\%BUILD_NUMBER%.txt
         '''
     }
+
     stage("List Directory After Create"){
         bat'''
-        echo --> listing file/folder exist in current directory<---
+        echo --^> listing file/folder exist in current directory ^<---
         dir
         '''
     }
