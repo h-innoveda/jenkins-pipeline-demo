@@ -48,6 +48,19 @@ def stages(){
         dir
         '''
     }
+
+    stage("Cleanup"){
+        bat'''
+        echo --^> Cleaning up created folders ^<--
+        if exist demo-folder (
+            rmdir /s /q demo-folder
+        )
+        if exist jenkins-pipeline-demo (
+            rmdir /s /q jenkins-pipeline-demo
+        )
+        echo --^> Cleanup done ^<--
+        '''
+    }
 }
 
 return this
