@@ -1,3 +1,7 @@
+// jenkinsfile-github
+// Dynamic stages script loaded by jenkinsfile-local
+// Maintained under version-controlled SCM logic
+
 def stages(){
 
     stage("Introduction"){
