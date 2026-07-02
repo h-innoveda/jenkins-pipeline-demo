@@ -1,0 +1,52 @@
+name: Jenkins Pipeline Demo (Github actions)
+
+on:
+    push:
+        branchs: [main]
+    pull_request:
+        branchs: [main]
+    workflow_dispatch:
+    
+jobs:
+    pipeline:
+        runs-on: windows-latest
+        steps:
+            - name: Checkout Repositoy
+            - uses: actions/checkout@v4
+            
+            - name: Introduction
+              shell: cmd
+              run: |
+                echo --- Hello from Github Actions ---
+                run.bat
+            - name: Show Current Path
+              shell: cmd
+              run: |
+                echo -- Listing files/folders in current directory --
+            - name: Create Demo folder
+              shell: cmd
+              run: |
+                echo --- Create demo folder ---
+                mkdir demo-folder
+            - name: Create Test File
+              shell: cmd
+              run: |
+                echo --- creating file of the current build ${{github.run_number}} ---
+                echo Hello from the automatically generated txt file from github actions > demo-folder\${{github.run_number}}.txt
+            - name: Show File content
+              shell: cmd
+              run: |
+                echo -- showing content of text file ---
+                type demo-folder\${{github.run_number}}.txt
+            - name: List directory After Create
+              shell: cmd
+              run: |
+                echo --listing files/folders after creation ---
+                dir
+            - name: Cleanup
+              shell: cmd
+              run: |
+                echo -- clearning up create folder ---
+                if exist demo-folder rmdir /s /q demo-folder
+                echo -- cleanup done --
+            
