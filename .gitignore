@@ -1,2 +1,9 @@
 # Exclude local Jenkins configuration file
 jenkinsfile-local
+
+# Temporary build folders
+demo-folder/
+
+# OS metadata
+.DS_Store
+Thumbs.db

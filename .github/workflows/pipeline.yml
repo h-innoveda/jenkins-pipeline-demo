@@ -2,16 +2,16 @@ name: Jenkins Pipeline Demo (Github actions)
 
 on:
     push:
-        branchs: [main]
+        branches: [main]
     pull_request:
-        branchs: [main]
+        branches: [main]
     workflow_dispatch:
     
 jobs:
     pipeline:
         runs-on: windows-latest
         steps:
-            - name: Checkout Repositoy
+            - name: Checkout Repository
               uses: actions/checkout@v4
             
             - name: Introduction
@@ -23,6 +23,7 @@ jobs:
               shell: cmd
               run: |
                 echo -- Listing files/folders in current directory --
+                dir
             - name: Create Demo folder
               shell: cmd
               run: |
@@ -41,12 +42,12 @@ jobs:
             - name: List directory After Create
               shell: cmd
               run: |
-                echo --listing files/folders after creation ---
+                echo -- listing files/folders after creation ---
                 dir
             - name: Cleanup
               shell: cmd
               run: |
-                echo -- clearning up create folder ---
+                echo -- cleaning up created folder ---
                 if exist demo-folder rmdir /s /q demo-folder
                 echo -- cleanup done --
             

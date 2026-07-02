@@ -1,0 +1,1952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pipeline Flow Visualizer</title>
+    <!-- Import Outfit font for UI elements and JetBrains Mono for code/logs -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Authentic Professional Colors */
+            --bg-primary: #0f172a;       /* Slate 900 */
+            --bg-secondary: #1e293b;     /* Slate 800 */
+            --bg-tertiary: #0b0f19;      /* Slate 955 */
+            --border-color: #334155;     /* Slate 700 */
+            
+            --text-primary: #f8fafc;     /* Slate 50 */
+            --text-secondary: #94a3b8;   /* Slate 400 */
+            --text-muted: #64748b;       /* Slate 500 */
+            
+            /* Brand specific authentic colors */
+            --jenkins-blue: #1f5b8b;
+            --jenkins-accent: #38bdf8;
+            --github-gray: #24292f;
+            --github-accent: #2ea44f;
+            --success-color: #10b981;    /* Emerald 500 */
+            --warning-color: #f59e0b;    /* Amber 500 */
+            
+            --transition-speed: 0.3s;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.4;
+            overflow: hidden; /* Prevent page scroll on desktop */
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 56px;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .header-title h1 {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-title p {
+            color: var(--text-secondary);
+            font-size: 11px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Toggle Tabs */
+        .pipeline-tabs {
+            display: flex;
+            background-color: var(--bg-primary);
+            padding: 3px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            padding: 4px 10px;
+            font-family: inherit;
+            font-weight: 500;
+            font-size: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .tab-btn.active {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-btn.jenkins-tab.active {
+            border-left: 2px solid var(--jenkins-accent);
+        }
+
+        .tab-btn.github-tab.active {
+            border-left: 2px solid var(--success-color);
+        }
+
+        .scaling-btn {
+            border: 1px dashed var(--warning-color) !important;
+            color: var(--warning-color) !important;
+        }
+
+        .scaling-btn:hover {
+            background-color: rgba(245, 158, 11, 0.1) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* Dashboard Container */
+        .dashboard {
+            width: 100%;
+            height: calc(100vh - 56px);
+            padding: 12px 16px;
+            display: grid;
+            grid-template-columns: 320px 1fr 280px;
+            gap: 12px;
+            overflow: hidden; /* No page scroll on desktop */
+            flex-grow: 1;
+        }
+
+        /* Sidebar Panels */
+        .left-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .right-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            height: 100%;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px;
+            overflow: hidden;
+        }
+
+        .center-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* Elements styling */
+        .explanation-banner {
+            background-color: rgba(30, 41, 59, 0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 10px 12px;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            flex-shrink: 0;
+        }
+
+        .banner-icon {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .banner-text h2 {
+            font-size: 12.5px;
+            font-weight: 600;
+            margin-bottom: 1px;
+        }
+
+        .banner-text p {
+            font-size: 11.5px;
+            color: var(--text-secondary);
+            line-height: 1.3;
+        }
+
+        /* Controls Section */
+        .playback-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px;
+            flex-shrink: 0;
+        }
+
+        .playback-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .playback-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 500;
+            font-size: 12px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn:hover {
+            background-color: var(--border-color);
+        }
+
+        .btn-primary {
+            background-color: var(--jenkins-blue);
+            border-color: var(--jenkins-blue);
+        }
+
+        .btn-primary:hover {
+            background-color: #1a4f78;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .playback-speed {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: auto;
+            color: var(--text-secondary);
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        .speed-select {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 3px 5px;
+            border-radius: 4px;
+            font-family: inherit;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        /* Flow Timeline Panel */
+        .timeline-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 6px;
+            flex-shrink: 0;
+        }
+
+        .timeline-title {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 4px;
+            background-color: var(--bg-primary);
+            border-radius: 2px;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background-color: var(--jenkins-accent);
+            transition: width 0.3s ease;
+        }
+
+        /* Vertical Timeline Steps */
+        .timeline-steps {
+            position: relative;
+            padding-left: 18px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        /* Scrollbars */
+        .timeline-steps::-webkit-scrollbar,
+        .code-body::-webkit-scrollbar,
+        .terminal-window::-webkit-scrollbar,
+        .modal-body::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        .timeline-steps::-webkit-scrollbar-track,
+        .code-body::-webkit-scrollbar-track,
+        .terminal-window::-webkit-scrollbar-track,
+        .modal-body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .timeline-steps::-webkit-scrollbar-thumb,
+        .code-body::-webkit-scrollbar-thumb,
+        .terminal-window::-webkit-scrollbar-thumb,
+        .modal-body::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        /* Vertical timeline indicator line */
+        .timeline-steps::before {
+            content: '';
+            position: absolute;
+            left: 4px;
+            top: 6px;
+            bottom: 6px;
+            width: 2px;
+            background-color: var(--border-color);
+            z-index: 1;
+        }
+
+        .step-node {
+            position: relative;
+            padding-bottom: 12px; /* Reduced to fit screen height */
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        .step-node:last-child {
+            padding-bottom: 0;
+        }
+
+        .step-marker {
+            position: absolute;
+            left: -18px;
+            top: 4px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .step-node.active .step-marker {
+            border-color: var(--jenkins-accent);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+        }
+
+        .step-node.completed .step-marker {
+            border-color: var(--success-color);
+            background-color: var(--success-color);
+        }
+
+        .step-content {
+            padding-left: 8px;
+        }
+
+        .step-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .step-node.active .step-title {
+            color: var(--text-primary);
+        }
+
+        .step-node.completed .step-title {
+            color: var(--success-color);
+        }
+
+        .step-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 1px;
+        }
+
+        .step-meta {
+            font-size: 9.5px;
+            padding: 1px 4px;
+            background-color: var(--bg-primary);
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            white-space: nowrap;
+            display: inline-block;
+        }
+
+        /* Code Viewer Card */
+        .code-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex: 0 0 45%; /* Bounded code block size */
+        }
+
+        .code-header {
+            background-color: rgba(15, 23, 42, 0.4);
+            border-bottom: 1px solid var(--border-color);
+            padding: 8px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .code-filename {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .code-filename::before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: var(--jenkins-accent);
+        }
+
+        .github-view .code-filename::before {
+            background-color: var(--success-color);
+        }
+
+        .code-body {
+            flex-grow: 1;
+            padding: 10px;
+            margin: 0;
+            overflow: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11.5px; /* Sized down to prevent overflow */
+            color: #cbd5e1;
+            background-color: rgba(15, 23, 42, 0.2);
+            white-space: pre-wrap; /* Wrap lines to prevent horizontal scrolling */
+            word-break: break-all;
+        }
+
+        .hl-keyword { color: #f472b6; font-weight: 500; }
+        .hl-string { color: #38bdf8; }
+        .hl-comment { color: #64748b; font-style: italic; }
+        .hl-method { color: #fbbf24; }
+        
+        .code-line {
+            display: block;
+            line-height: 1.4;
+            padding: 0 4px;
+            border-radius: 4px;
+        }
+        
+        .code-line.highlight {
+            background-color: rgba(30, 41, 59, 0.8);
+            border-left: 3px solid var(--jenkins-accent);
+            padding-left: 3px;
+        }
+
+        .github-view .code-line.highlight {
+            border-left-color: var(--success-color);
+        }
+
+        /* Console Terminal Card */
+        .terminal-card {
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex: 1; /* Fills height */
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
+        }
+
+        .terminal-header {
+            background-color: #0b0f19;
+            border-bottom: 1px solid var(--border-color);
+            padding: 8px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .terminal-tab {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-transform: uppercase;
+        }
+
+        .terminal-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: var(--success-color);
+            animation: pulse 1.5s infinite;
+        }
+
+        .terminal-window {
+            flex-grow: 1;
+            padding: 12px 14px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11.5px; /* Sized down */
+            color: #e2e8f0;
+            line-height: 1.4;
+        }
+
+        .terminal-line {
+            margin-bottom: 3px;
+            white-space: pre-wrap;
+            border-left: 3px solid transparent;
+            padding-left: 6px;
+        }
+
+        .terminal-line.command { color: #38bdf8; font-weight: 500; }
+        .terminal-line.system { color: var(--text-muted); }
+        .terminal-line.success { color: var(--success-color); }
+        .terminal-line.warning { color: var(--warning-color); }
+
+        /* Vertical Diagram stack */
+        .diagram-section-header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            flex-shrink: 0;
+        }
+
+        .diagram-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            flex-grow: 1;
+            position: relative;
+            margin: 6px 0;
+        }
+
+        .nodes-vertical-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            position: relative;
+            flex-grow: 1;
+        }
+
+        .diagram-node {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            padding: 8px 10px;
+            border-radius: 8px;
+            text-align: center;
+            width: 100%;
+            position: relative;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .diagram-node.active {
+            border-color: var(--jenkins-accent);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        }
+
+        .github-view .diagram-node.active {
+            border-color: var(--success-color);
+        }
+
+        .diagram-node h3 {
+            font-size: 11.5px;
+            font-weight: 700;
+            margin-bottom: 1px;
+        }
+
+        .diagram-node p {
+            font-size: 10.5px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .hotspot-btn {
+            background-color: rgba(30, 41, 59, 0.6);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 9.5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            transition: all 0.2s;
+            font-family: inherit;
+            font-weight: 500;
+        }
+
+        .hotspot-btn:hover {
+            background-color: var(--border-color);
+            border-color: var(--text-secondary);
+        }
+
+        .diagram-node.active .hotspot-btn {
+            border-color: var(--jenkins-accent);
+            background-color: rgba(56, 189, 248, 0.1);
+        }
+
+        .github-view .diagram-node.active .hotspot-btn {
+            border-color: var(--success-color);
+            background-color: rgba(16, 185, 129, 0.1);
+        }
+
+        .node-connector-arrow {
+            font-size: 13px;
+            color: var(--border-color);
+            margin: 1px 0;
+            line-height: 1;
+            text-align: center;
+            transition: color 0.3s;
+            align-self: center;
+        }
+
+        .node-connector-arrow.active {
+            color: var(--jenkins-accent);
+        }
+
+        .github-view .node-connector-arrow.active {
+            color: var(--success-color);
+        }
+
+        /* Modal overlay popup layout */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-container {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transform: scale(0.95);
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .modal-overlay.active .modal-container {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .modal-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 22px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 2px;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 18px;
+            overflow-y: auto;
+            font-size: 13px;
+            color: #cbd5e1;
+            line-height: 1.45;
+        }
+
+        .modal-body p {
+            margin-bottom: 10px;
+        }
+
+        .modal-body ul {
+            margin-left: 18px;
+            margin-bottom: 10px;
+        }
+
+        .modal-body li {
+            margin-bottom: 6px;
+        }
+
+        .modal-body strong {
+            color: var(--text-primary);
+        }
+
+        .badge {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-size: 9.5px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--jenkins-accent);
+        }
+
+        .github-view .badge {
+            color: var(--success-color);
+        }
+
+        /* Zoom Expanded view modal styling */
+        #zoom-modal-content pre {
+            margin: 0;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            overflow-y: auto;
+            flex-grow: 1;
+            background-color: var(--bg-tertiary);
+            color: #cbd5e1;
+            height: 450px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* RESPONSIVE MEDIA QUERIES */
+        @media (max-width: 1024px) {
+            body {
+                overflow-y: auto;
+                height: auto;
+            }
+            
+            header {
+                height: auto;
+                padding: 10px 16px;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .dashboard {
+                grid-template-columns: 1fr;
+                height: auto;
+                overflow: visible;
+                padding: 10px;
+                gap: 12px;
+            }
+            
+            .left-sidebar, .right-sidebar, .center-panel {
+                height: auto;
+                overflow: visible;
+            }
+            
+            .code-card, .terminal-card {
+                flex: none;
+                height: 300px;
+            }
+
+            .nodes-vertical-container {
+                flex-direction: row;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 8px;
+                height: auto;
+            }
+            
+            .diagram-node {
+                width: calc(50% - 4px);
+            }
+            
+            .node-connector-arrow {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .diagram-node {
+                width: 100%;
+            }
+            .header-actions {
+                flex-direction: column;
+                align-items: flex-start;
+                width: 100%;
+            }
+            .pipeline-tabs {
+                width: 100%;
+            }
+            .tab-btn {
+                flex-grow: 1;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Header -->
+    <header>
+        <div class="header-title">
+            <h1>⚙️ CI/CD Pipeline Execution Visualizer</h1>
+            <p>Interactive mapping of standard enterprise CI/CD execution patterns</p>
+        </div>
+        
+        <div class="header-actions">
+            <!-- Pipeline Switcher -->
+            <div class="pipeline-tabs">
+                <button class="tab-btn active jenkins-tab" onclick="switchPipeline('jenkins')">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    Jenkins load()
+                </button>
+                <button class="tab-btn github-tab" onclick="switchPipeline('github')">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+                    GitHub Actions
+                </button>
+            </div>
+            
+            <!-- Scaling Guide Trigger -->
+            <button class="tab-btn scaling-btn" onclick="openScalingGuide()">
+                🚀 Enterprise Scaling
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="dashboard" id="dashboard-container">
+        
+        <!-- Left Column: Navigation, Banner & Steps -->
+        <div class="left-sidebar">
+            <!-- Explanation Banner -->
+            <div class="explanation-banner">
+                <div class="banner-icon" id="banner-icon-badge">📁</div>
+                <div class="banner-text">
+                    <h2 id="explanation-heading">Jenkins Bootstrap Flow & load() Pattern</h2>
+                    <p id="explanation-desc">In large enterprises, Jenkins configurations are often decoupled from specific projects. A minimal local loader script pulls the version-controlled scripts from source control and evaluates them at runtime using load(), ensuring central governance with project flexibility.</p>
+                </div>
+            </div>
+
+            <!-- Player Controls -->
+            <div class="playback-card">
+                <div class="playback-title">Interactive Player</div>
+                <div class="playback-controls">
+                    <button class="btn" id="prev-btn" onclick="prevStep()">
+                        <span>⏮️</span> Prev
+                    </button>
+                    <button class="btn btn-primary" id="play-btn" onclick="togglePlay()">
+                        <span id="play-icon">▶️</span> <span id="play-text">Play</span>
+                    </button>
+                    <button class="btn" id="next-btn" onclick="nextStep()">
+                        Next <span>⏭️</span>
+                    </button>
+                    <button class="btn" id="reset-btn" onclick="resetPipeline()">
+                        Reset 🔄
+                    </button>
+                    
+                    <div class="playback-speed">
+                        <label for="speed">Speed:</label>
+                        <select id="speed" class="speed-select" onchange="changeSpeed(this.value)">
+                            <option value="10000">0.1x</option>
+                            <option value="6000">0.3x</option>
+                            <option value="4000" selected>0.5x</option>
+                            <option value="2500">0.8x</option>
+                            <option value="1500">1.0x</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Steps Progress list -->
+            <div class="timeline-card">
+                <div class="timeline-header">
+                    <div class="timeline-title" id="pipeline-timeline-title">Jenkins Job Pipeline Stages</div>
+                    <div class="step-meta" id="step-counter">Step: 0 / 8</div>
+                </div>
+                
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="progress-bar-fill"></div>
+                </div>
+
+                <div class="timeline-steps" id="timeline-steps-container">
+                    <!-- Steps will be generated by JavaScript based on active pipeline -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Column: Code & Logs -->
+        <div class="center-panel">
+            <!-- Code Snippet Box -->
+            <div class="code-card" id="code-card-elem">
+                <div class="code-header">
+                    <div class="code-filename" id="code-filename-label">jenkinsfile-local</div>
+                    <button class="hotspot-btn" onclick="zoomCode()" title="Expand Code View" style="padding: 2px 6px; border-radius: 4px;">
+                        ⛶ Zoom
+                    </button>
+                </div>
+                <pre class="code-body"><code id="code-codeblock">Select a pipeline and step to begin visualization.</code></pre>
+            </div>
+
+            <!-- Terminal Simulator -->
+            <div class="terminal-card">
+                <div class="terminal-header">
+                    <div class="terminal-tab">
+                        <span class="terminal-dot"></span>
+                        Live Execution Terminal Logs
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <button class="hotspot-btn" onclick="zoomLogs()" title="Expand Logs View" style="padding: 2px 6px; border-radius: 4px; margin-right: 4px;">
+                            ⛶ Zoom
+                        </button>
+                        <div class="step-meta" style="font-family: 'JetBrains Mono', monospace;" id="terminal-job-status">IDLE</div>
+                    </div>
+                </div>
+                <div class="terminal-window" id="terminal-log-window">
+                    <div class="terminal-line system">Waiting for pipeline execution trigger...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Architecture Flow Node Diagram -->
+        <div class="right-sidebar">
+            <div class="diagram-section-header">
+                <div class="playback-title" style="margin-bottom: 2px;">Architecture Nodes</div>
+                <p style="font-size: 11px; color: var(--text-secondary); line-height: 1.3;">
+                    💡 Click <strong>"🔍 Internals"</strong> to inspect SCM checkouts, webhooks, and VM allocations.
+                </p>
+            </div>
+            <div class="diagram-container" id="diagram-nodes-container">
+                <!-- Nodes generated by JS -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Deep Dive Modal -->
+    <div class="modal-overlay" id="deep-dive-modal" onclick="closeModal(event)">
+        <div class="modal-container" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="modal-title" id="modal-node-title">⚙️ Node Internals</div>
+                <button class="modal-close" onclick="closeModal(event)">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-node-content">
+                <!-- Content injected dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Zoom Modal -->
+    <div class="modal-overlay" id="zoom-modal" onclick="closeZoomModal(event)">
+        <div class="modal-container" style="max-width: 800px; width: 90%; max-height: 85vh;" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="modal-title" id="zoom-modal-title">⛶ Expanded View</div>
+                <button class="modal-close" onclick="closeZoomModal(event)">&times;</button>
+            </div>
+            <div class="modal-body" id="zoom-modal-content" style="padding: 0; display: flex; flex-direction: column; overflow: hidden;">
+                <!-- Code or Logs will be loaded here dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Enterprise Scaling Guide Modal -->
+    <div class="modal-overlay" id="scaling-modal" onclick="closeScalingModal(event)">
+        <div class="modal-container" style="max-width: 650px;" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="modal-title">🚀 Enterprise CI/CD Scaling Guide</div>
+                <button class="modal-close" onclick="closeScalingModal(event)">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>This demo maps out standard pipeline tasks. In enterprise environments, these patterns scale to handle hundreds of repositories with unified security and deployment strategies.</p>
+                
+                <h3 style="color: var(--jenkins-accent); margin: 16px 0 6px 0; font-size: 14px; font-weight: 600;">1. Jenkins Shared Libraries (Standard Scaling)</h3>
+                <p>While dynamic <code>load()</code> works, enterprises use <strong>Shared Libraries</strong> to standardize workflows:</p>
+                <ul>
+                    <li><strong>Repository:</strong> Code is stored in a centralized library with dedicated directories (<span class="badge">vars/</span> for custom steps, <span class="badge">src/</span> for raw Groovy objects).</li>
+                    <li><strong>Importing:</strong> Loaded at the top of any project file: <code>@Library('enterprise-shared-lib@2.0.0') _</code>.</li>
+                    <li><strong>Advantage:</strong> Pre-compiled, dry-run validateable, and supports version tagging to safeguard builds against unexpected library updates.</li>
+                </ul>
+                
+                <h3 style="color: var(--success-color); margin: 16px 0 6px 0; font-size: 14px; font-weight: 600;">2. Automated Security Scanning (DevSecOps)</h3>
+                <p>Enterprise pipelines mandate security scanning stages before deployment:</p>
+                <ul>
+                    <li><strong>SonarQube:</strong> Runs Static Application Security Testing (SAST) to detect vulnerabilities, security hotspots, and evaluate code coverage percentages.</li>
+                    <li><strong>Trivy / Snyk:</strong> Scans built Docker image layers or dependency trees to identify vulnerable third-party modules, blocking builds if "HIGH" or "CRITICAL" CVEs exist.</li>
+                </ul>
+                
+                <h3 style="color: var(--warning-color); margin: 16px 0 6px 0; font-size: 14px; font-weight: 600;">3. Continuous Delivery & GitOps Promotions</h3>
+                <p>Instead of building and calling script commands directly to environments, scaling setups decouple deployment:</p>
+                <ul>
+                    <li><strong>Manual Gates:</strong> Use interactive pipeline steps (<code>input</code> stage) to pause for manual approval before staging or prod.</li>
+                    <li><strong>GitOps Sync:</strong> The build runner pushes containers to a Registry and modifies a config file in a Git repo. An in-cluster operator (like ArgoCD) automatically detects the edit and reconciles cluster state.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data containing steps, code blocks, logs, and diagram highlights
+        const pipelineData = {
+            jenkins: {
+                accent: 'var(--jenkins-accent)',
+                brandColor: 'var(--jenkins-blue)',
+                title: 'Jenkins Dynamic load() Pipeline',
+                bannerHeading: 'Jenkins Bootstrap Flow & load() Pattern',
+                bannerIcon: '⚙️',
+                bannerDesc: 'Standard corporate setup where a thin Local Jenkinsfile acts as a loader. It pulls code dynamically from version control and evaluates it with load(), allowing central administrators to change underlying build structures without manually editing hundreds of separate pipeline jobs.',
+                steps: [
+                    {
+                        title: '1. Local Job Start',
+                        desc: 'Jenkins server UI initiates build trigger.',
+                        code: `<span class="hl-keyword">pipeline</span> {
+    <span class="hl-keyword">agent</span> any
+    <span class="hl-keyword">stages</span> {
+        <span class="hl-keyword">stage</span>(<span class="hl-string">"Loading Local Jenkins file"</span>) {
+            <span class="hl-keyword">steps</span> {
+                <span class="hl-keyword">script</span> {
+                    <span class="hl-method">load</span>(<span class="hl-string">"jenkinsfile-local"</span>).<span class="hl-method">stages</span>()
+                }
+            }
+        }
+    }
+}`,
+                        filename: 'Jenkins UI Job Script',
+                        log: [
+                            { type: 'system', text: 'Started by user admin' },
+                            { type: 'system', text: 'Running on Jenkins in C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\Jenkins-Github-Demo' },
+                            { type: 'command', text: '[Pipeline] Start of Pipeline' },
+                            { type: 'command', text: '[Pipeline] stage (Loading Local Jenkins file)' }
+                        ],
+                        diagramActiveNode: 0
+                    },
+                    {
+                        title: '2. Execute Local Loader',
+                        desc: 'Reads local server file to handle cloning script.',
+                        code: `<span class="hl-keyword">def</span> <span class="hl-method">stages</span>(){
+    <span class="hl-method">echo</span> <span class="hl-string">"Hello from Local jenkins file"</span>
+    <span class="hl-method">echo</span> <span class="hl-string">"we are cloning the repo"</span>
+
+    <span class="hl-method">bat</span> <span class="hl-string">'''
+    if exist jenkins-pipeline-demo (
+        rmdir /s /q jenkins-pipeline-demo
+    )
+    git clone https://github.com/hitesh/jenkins-pipeline-demo.git
+    '''</span>
+    // ...
+}`,
+                        filename: 'jenkinsfile-local (On Jenkins Server)',
+                        log: [
+                            { type: 'command', text: '[Pipeline] load (jenkinsfile-local)' },
+                            { type: 'success', text: 'Hello from Local jenkins file' },
+                            { type: 'success', text: 'we are cloning the repo' }
+                        ],
+                        diagramActiveNode: 0
+                    },
+                    {
+                        title: '3. Clone From GitHub',
+                        desc: 'Downloads remote repo code onto Jenkins workspace.',
+                        code: `<span class="hl-method">bat</span> <span class="hl-string">'''
+    if exist jenkins-pipeline-demo (
+        rmdir /s /q jenkins-pipeline-demo
+    )
+    git clone https://github.com/hitesh/jenkins-pipeline-demo.git
+'''</span>`,
+                        filename: 'jenkinsfile-local (Workspace Checkout)',
+                        log: [
+                            { type: 'command', text: 'git clone https://github.com/hitesh/jenkins-pipeline-demo.git' },
+                            { type: 'system', text: 'Cloning into \'jenkins-pipeline-demo\'...' },
+                            { type: 'success', text: 'repo cloned successfully' }
+                        ],
+                        diagramActiveNode: 1
+                    },
+                    {
+                        title: '4. Dynamic load() Call',
+                        desc: 'Loads the remote jenkinsfile-github and triggers stages.',
+                        code: `    // Loaded dynamically from cloned directory
+    <span class="hl-method">load</span>(<span class="hl-string">"jenkins-pipeline-demo/jenkinsfile-github"</span>).<span class="hl-method">stages</span>()
+}`,
+                        filename: 'jenkinsfile-local (Dynamic Import)',
+                        log: [
+                            { type: 'command', text: '[Pipeline] load (jenkins-pipeline-demo/jenkinsfile-github)' },
+                            { type: 'system', text: 'Evaluating remote stages() method...' }
+                        ],
+                        diagramActiveNode: 2
+                    },
+                    {
+                        title: '5. Pipeline Init & Intro',
+                        desc: 'Triggers run.bat inside the evaluated file.',
+                        code: `<span class="hl-keyword">def</span> <span class="hl-method">stages</span>(){
+    <span class="hl-keyword">stage</span>(<span class="hl-string">"Introduction"</span>){
+        <span class="hl-method">bat</span><span class="hl-string">'''
+        echo --- Hello from Jenkins file GitHub ---
+        jenkins-pipeline-demo\\run.bat
+        '''</span>
+    }`,
+                        filename: 'jenkinsfile-github (Evaluated)',
+                        log: [
+                            { type: 'command', text: '[Pipeline] stage (Introduction)' },
+                            { type: 'success', text: '--- Hello from Jenkins file GitHub ---' },
+                            { type: 'success', text: 'Hello, from inside the GitHub Repo!' },
+                            { type: 'success', text: 'This repo demonstrates a production-ready structure.' }
+                        ],
+                        diagramActiveNode: 2
+                    },
+                    {
+                        title: '6. List Directory & Paths',
+                        desc: 'Prints execution paths and lists current workspace.',
+                        code: `    <span class="hl-keyword">stage</span>(<span class="hl-string">"Current path"</span>){
+        <span class="hl-method">bat</span><span class="hl-string">'''cd'''</span>
+    }
+    <span class="hl-keyword">stage</span>(<span class="hl-string">"List Directory"</span>){
+        <span class="hl-method">bat</span><span class="hl-string">'''dir'''</span>
+    }`,
+                        filename: 'jenkinsfile-github (Evaluated)',
+                        log: [
+                            { type: 'command', text: '[Pipeline] stage (Current path)' },
+                            { type: 'success', text: 'C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\Jenkins-Github-Demo' },
+                            { type: 'command', text: '[Pipeline] stage (List Directory)' },
+                            { type: 'system', text: 'Directory of C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\...' }
+                        ],
+                        diagramActiveNode: 2
+                    },
+                    {
+                        title: '7. File Creation & Read',
+                        desc: 'Generates build-specific text artifact and types it.',
+                        code: `    <span class="hl-keyword">stage</span>(<span class="hl-string">"create demofolder"</span>){
+        <span class="hl-method">bat</span><span class="hl-string">'''mkdir demo-folder'''</span>
+    }
+    <span class="hl-keyword">stage</span>(<span class="hl-string">"creating test file"</span>){
+        <span class="hl-method">bat</span><span class="hl-string">'''echo content &gt; demo-folder\\%BUILD_NUMBER%.txt'''</span>
+    }
+    <span class="hl-keyword">stage</span>(<span class="hl-string">"showing content"</span>){
+        <span class="hl-method">bat</span><span class="hl-string">'''type demo-folder\\%BUILD_NUMBER%.txt'''</span>
+    }`,
+                        filename: 'jenkinsfile-github (Evaluated)',
+                        log: [
+                            { type: 'command', text: '[Pipeline] stage (create demofolder)' },
+                            { type: 'command', text: '[Pipeline] stage (creating test file)' },
+                            { type: 'command', text: '[Pipeline] stage (showing content)' },
+                            { type: 'success', text: 'Hello from the automatically generated txt file from jenkins job' }
+                        ],
+                        diagramActiveNode: 3
+                    },
+                    {
+                        title: '8. Workspace Cleanup',
+                        desc: 'Deletes generated artifacts, completing job.',
+                        code: `    <span class="hl-keyword">stage</span>(<span class="hl-string">"Cleanup"</span>){
+        <span class="hl-method">bat</span><span class="hl-string">'''
+        if exist demo-folder rmdir /s /q demo-folder
+        if exist jenkins-pipeline-demo rmdir /s /q jenkins-pipeline-demo
+        '''</span>
+    }
+}`,
+                        filename: 'jenkinsfile-github (Evaluated)',
+                        log: [
+                            { type: 'command', text: '[Pipeline] stage (Cleanup)' },
+                            { type: 'success', text: '--> Cleaning up created folders <--' },
+                            { type: 'success', text: '--> Cleanup done <--' },
+                            { type: 'success', text: 'Finished: SUCCESS' }
+                        ],
+                        diagramActiveNode: 3
+                    }
+                ],
+                nodes: [
+                    { 
+                        name: 'Jenkins Controller', 
+                        desc: 'Job scheduling, triggers, and credential database.',
+                        details: `
+                            <p><strong>How the Controller starts builds:</strong></p>
+                            <p>Runs as a Java web app on the server. When clicked or triggered, it schedules tasks based on job configurations stored in XML files.</p>
+                            <ul>
+                                <li><strong>GitHub Connection:</strong> Jenkins listens on <code>/github-webhook/</code>. Commits send webhook payloads, prompting the plugin to queue jobs matching the repository.</li>
+                                <li><strong>Script Sandboxing:</strong> Dynamic <code>load()</code> scripts execute in a sandboxed runtime, requiring administrator approval (configured under In-process Script Approval) to block unauthorized execution.</li>
+                            </ul>
+                        `
+                    },
+                    { 
+                        name: 'GitHub Repository SCM', 
+                        desc: 'Version history, remote triggers, and SSH keys.',
+                        details: `
+                            <p><strong>Code Checkout Handshake:</strong></p>
+                            <p>GitHub stores the Git repository database. During a pipeline run:</p>
+                            <ul>
+                                <li><strong>Authentication:</strong> Jenkins passes SSH key credentials or tokens. GitHub verifies access and establishes an encrypted stream.</li>
+                                <li><strong>Packfile Stream:</strong> GitHub packages objects into a compressed Git packfile and pushes it to the builder workspace, creating the workspace filesystem layout.</li>
+                            </ul>
+                        `
+                    },
+                    { 
+                        name: 'Jenkins JVM load() context', 
+                        desc: 'Compiling text script dynamically into runtime memory.',
+                        details: `
+                            <p><strong>Internals of dynamic load():</strong></p>
+                            <ul>
+                                <li><strong>Groovy compilation:</strong> Text files are parsed, converted into an Abstract Syntax Tree (AST), and compiled into Class bytecode on-the-fly inside the Jenkins JVM class loader.</li>
+                                <li><strong>Inheritance:</strong> The loaded script is initialized as a live Groovy object. It gains full access to Controller pipeline methods (such as <code>bat</code>, <code>sh</code>, <code>echo</code>, and variables).</li>
+                            </ul>
+                        `
+                    },
+                    { 
+                        name: 'Agent Workspace Disk', 
+                        desc: 'Physical folder directories and process wrappers.',
+                        details: `
+                            <p><strong>Command Execution Context:</strong></p>
+                            <p>An Agent runs a background JVM client (<span class="badge">agent.jar</span>) communicating with the Controller:</p>
+                            <ul>
+                                <li><strong>Workspace:</strong> Located at <code>C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\&lt;JOB_NAME&gt;\\</code>.</li>
+                                <li><strong>Spawning Processes:</strong> Step commands launch child native processes (e.g. <code>cmd.exe /c run.bat</code>) inside the directory. The agent captures standard output/error, redirection logs, and streams them back to the UI console.</li>
+                            </ul>
+                        `
+                    }
+                ]
+            },
+            github: {
+                accent: 'var(--success-color)',
+                brandColor: 'var(--github-gray)',
+                title: 'GitHub Actions CI Workflow',
+                bannerHeading: 'GitHub Actions Runner Orchestration',
+                bannerIcon: '🐙',
+                bannerDesc: 'GitHub Actions manages CI pipelines directly in Cloud SaaS. It allocates a runner container dynamically, checks out the project workspace via Git, and runs separate steps under distinct shell isolation levels.',
+                steps: [
+                    {
+                        title: '1. Event Trigger',
+                        desc: 'GitHub receives a push/PR on main branch.',
+                        code: `<span class="hl-keyword">name</span>: Jenkins Pipeline Demo (Github actions)
+<span class="hl-keyword">on</span>:
+    <span class="hl-keyword">push</span>:
+        <span class="hl-keyword">branches</span>: [main]
+    <span class="hl-keyword">pull_request</span>:
+        <span class="hl-keyword">branches</span>: [main]
+    <span class="hl-keyword">workflow_dispatch</span>:`,
+                        filename: 'pipeline.yml',
+                        log: [
+                            { type: 'system', text: 'Triggered by push event on commit 5a7f2d01' },
+                            { type: 'system', text: 'Requesting cloud runner container allocation...' }
+                        ],
+                        diagramActiveNode: 0
+                    },
+                    {
+                        title: '2. Provision Runner VM',
+                        desc: 'Allocates Windows container environment.',
+                        code: `<span class="hl-keyword">jobs</span>:
+    <span class="hl-keyword">pipeline</span>:
+        <span class="hl-keyword">runs-on</span>: windows-latest
+        <span class="hl-keyword">steps</span>:`,
+                        filename: 'pipeline.yml',
+                        log: [
+                            { type: 'system', text: 'Runner Image: Windows-2022' },
+                            { type: 'system', text: 'Configuring network and directory permissions...' },
+                            { type: 'success', text: 'Runner VM initialized successfully.' }
+                        ],
+                        diagramActiveNode: 1
+                    },
+                    {
+                        title: '3. Repository Checkout',
+                        desc: 'Standard GitHub checkout action clone step.',
+                        code: `            - <span class="hl-keyword">name</span>: Checkout Repository
+              <span class="hl-keyword">uses</span>: actions/checkout@v4`,
+                        filename: 'pipeline.yml',
+                        log: [
+                            { type: 'command', text: 'Run actions/checkout@v4' },
+                            { type: 'system', text: 'Syncing repository repository to workspace directory...' },
+                            { type: 'success', text: 'Checked out main branch.' }
+                        ],
+                        diagramActiveNode: 2
+                    },
+                    {
+                        title: '4. Execute run.bat script',
+                        desc: 'Invokes script from repo displaying flow details.',
+                        code: `            - <span class="hl-keyword">name</span>: Introduction
+              <span class="hl-keyword">shell</span>: cmd
+              <span class="hl-keyword">run</span>: |
+                echo --- Hello from Github Actions ---
+                run.bat`,
+                        filename: 'pipeline.yml',
+                        log: [
+                            { type: 'command', text: 'Run echo --- Hello from Github Actions ---' },
+                            { type: 'success', text: '--- Hello from Github Actions ---' },
+                            { type: 'success', text: 'Hello, from inside the GitHub Repo!' }
+                        ],
+                        diagramActiveNode: 3
+                    },
+                    {
+                        title: '5. Directory Discovery',
+                        desc: 'Lists the content directory in runner path.',
+                        code: `            - <span class="hl-keyword">name</span>: Show Current Path
+              <span class="hl-keyword">shell</span>: cmd
+              <span class="hl-keyword">run</span>: |
+                echo -- Listing files/folders in current directory --
+                dir`,
+                        filename: 'pipeline.yml',
+                        log: [
+                            { type: 'command', text: 'Run Listing files/folders...' },
+                            { type: 'success', text: '-- Listing files/folders in current directory --' },
+                            { type: 'system', text: 'Directory of D:\\a\\jenkins-pipeline-demo\\jenkins-pipeline-demo...' }
+                        ],
+                        diagramActiveNode: 3
+                    },
+                    {
+                        title: '6. Directory Creation',
+                        desc: 'Generates workspace directories for output.',
+                        code: `            - <span class="hl-keyword">name</span>: Create Demo folder
+              <span class="hl-keyword">shell</span>: cmd
+              <span class="hl-keyword">run</span>: |
+                echo --- Create demo folder ---
+                mkdir demo-folder`,
+                        filename: 'pipeline.yml',
+                        log: [
+                            { type: 'command', text: 'Run mkdir demo-folder' },
+                            { type: 'success', text: '--- Create demo folder ---' }
+                        ],
+                        diagramActiveNode: 3
+                    },
+                    {
+                        title: '7. Artifact Generation',
+                        desc: 'Generates text file tied to GitHub Run Number.',
+                        code: `            - <span class="hl-keyword">name</span>: Create Test File
+              <span class="hl-keyword">shell</span>: cmd
+              <span class="hl-keyword">run</span>: |
+                echo Hello ... &gt; demo-folder\\\${{github.run_number}}.txt`,
+                        filename: 'pipeline.yml',
+                        log: [
+                            { type: 'command', text: 'Run Create Test File' },
+                            { type: 'success', text: 'Writing text output to demo-folder\\42.txt...' }
+                        ],
+                        diagramActiveNode: 3
+                    },
+                    {
+                        title: '8. Complete & Cleanup',
+                        desc: 'Logs success outputs and executes post steps.',
+                        code: `            - <span class="hl-keyword">name</span>: Cleanup
+              <span class="hl-keyword">shell</span>: cmd
+              <span class="hl-keyword">run</span>: |
+                if exist demo-folder rmdir /s /q demo-folder`,
+                        filename: 'pipeline.yml',
+                        log: [
+                            { type: 'command', text: 'Run Cleanup' },
+                            { type: 'success', text: '-- cleaning up created folder ---' },
+                            { type: 'success', text: 'Job status: SUCCESS' }
+                        ],
+                        diagramActiveNode: 3
+                    }
+                ],
+                nodes: [
+                    { 
+                        name: 'Developer Push Trigger', 
+                        desc: 'Committing code and pushing updates to main branch.',
+                        details: `
+                            <p><strong>How the developer trigger starts:</strong></p>
+                            <p>When you run <code>git push origin main</code> in your terminal:</p>
+                            <ul>
+                                <li><strong>Pack Generation:</strong> Git collects changes and streams them to GitHub's Git server over SSH or HTTPS.</li>
+                                <li><strong>Webhook Event Dispatch:</strong> Upon receiving commits, GitHub's event dispatcher generates a JSON event payload (containing branch name, commit SHA, committer details, etc.).</li>
+                                <li><strong>Workflow File Resolution:</strong> The platform reads the <code>.github/workflows/</code> directory at that commit SHA, looking for YAML files that list the <code>push: branches: [main]</code> trigger event. If a match is found, a job run is queued.</li>
+                            </ul>
+                        `
+                    },
+                    { 
+                        name: 'GitHub Cloud Coordinator', 
+                        desc: 'Orchestrating workflows and VM allocation queues.',
+                        details: `
+                            <p><strong>How GitHub Allocates VM Runners:</strong></p>
+                            <p>GitHub communicates with cloud virtualization pools (primarily hosted on Microsoft Azure hypervisors):</p>
+                            <ul>
+                                <li><strong>Specifications of GitHub-Hosted Windows Runner:</strong>
+                                    <br>• <strong>CPU:</strong> 2 vCPUs (Intel Xeon / AMD EPYC)
+                                    <br>• <strong>RAM:</strong> 7 GB system RAM
+                                    <br>• <strong>SSD:</strong> 14 GB workspace disk space
+                                </li>
+                                <li><strong>Workflow Queues:</strong> Jobs queue until a matching clean VM starts.</li>
+                                <li><strong>Tenant Isolation:</strong> Windows VMs run on Hyper-V. Once a job finishes, the VM is deleted instantly, destroying code and environment keys to ensure strict multi-tenant security.</li>
+                            </ul>
+                        `
+                    },
+                    { 
+                        name: 'SCM Checkout Stage', 
+                        desc: 'Cloning project files into temporary cloud space.',
+                        details: `
+                            <p><strong>How SCM is checked out on the Runner:</strong></p>
+                            <ul>
+                                <li><strong>Security Token:</strong> GitHub automatically injects a short-lived key (<span class="badge">GITHUB_TOKEN</span>) into the environment to authenticate SCM requests safely.</li>
+                                <li><strong>Workspace Folder Path:</strong> In Windows runners, checkout creates the folder <code>D:\\a\\&lt;REPO_NAME&gt;\\&lt;REPO_NAME&gt;\\</code> (referenced inside the workflow files as the <code>github.workspace</code> variable).</li>
+                            </ul>
+                        `
+                    },
+                    { 
+                        name: 'Virtual Shell Executor', 
+                        desc: 'Running command blocks within dedicated runners.',
+                        details: `
+                            <p><strong>How commands execute in VM runners:</strong></p>
+                            <p>A background worker agent application (.NET Core) executes tasks:</p>
+                            <ul>
+                                <li><strong>Executing Script:</strong> When executing <code>shell: cmd</code>, the agent writes your command inputs to a temp batch file (e.g. <code>temp_script.cmd</code>).</li>
+                                <li><strong>Running Process:</strong> Spawns <code>cmd.exe /D /C temp_script.cmd</code> setting the working directory to the checkout workspace. Standard outputs are sent via encrypted WebSockets to GitHub UI logs.</li>
+                            </ul>
+                        `
+                    }
+                ]
+            }
+        };
+
+        let currentActivePipeline = 'jenkins';
+        let currentStepIndex = 0;
+        let isPlaying = false;
+        let playInterval = null;
+        let playbackDelay = 4000; // ms (Default 0.5x, slower)
+
+        // Initialize display
+        window.onload = function() {
+            renderActivePipeline();
+            resetPipeline();
+        };
+
+        function switchPipeline(pipelineKey) {
+            // Stop playing first
+            if (isPlaying) {
+                togglePlay();
+            }
+            
+            currentActivePipeline = pipelineKey;
+            
+            // Toggle active classes on tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                if (!btn.classList.contains('scaling-btn')) {
+                    btn.classList.remove('active');
+                }
+            });
+            document.querySelector(`.${pipelineKey}-tab`).classList.add('active');
+            
+            // Adjust visual classes on selectors
+            const dash = document.getElementById('dashboard-container');
+            const codeCard = document.getElementById('code-card-elem');
+            
+            if (pipelineKey === 'jenkins') {
+                dash.classList.remove('github-view');
+                codeCard.classList.remove('github-view');
+                document.getElementById('play-btn').style.backgroundColor = 'var(--jenkins-blue)';
+                document.getElementById('play-btn').style.borderColor = 'var(--jenkins-blue)';
+            } else {
+                dash.classList.add('github-view');
+                codeCard.classList.add('github-view');
+                document.getElementById('play-btn').style.backgroundColor = 'var(--success-color)';
+                document.getElementById('play-btn').style.borderColor = 'var(--success-color)';
+            }
+
+            renderActivePipeline();
+            resetPipeline();
+        }
+
+        function renderActivePipeline() {
+            const data = pipelineData[currentActivePipeline];
+            
+            // Set header banner content
+            document.getElementById('explanation-heading').innerText = data.bannerHeading;
+            document.getElementById('explanation-desc').innerText = data.bannerDesc;
+            document.getElementById('banner-icon-badge').innerText = data.bannerIcon;
+            
+            // Set Timeline Header Titles
+            document.getElementById('pipeline-timeline-title').innerText = `${data.title} Stages`;
+
+            // Render Flow Steps
+            const stepsContainer = document.getElementById('timeline-steps-container');
+            stepsContainer.innerHTML = '';
+            
+            data.steps.forEach((step, index) => {
+                const node = document.createElement('div');
+                node.className = 'step-node';
+                node.id = `step-node-${index}`;
+                node.onclick = () => selectStep(index);
+                
+                node.innerHTML = `
+                    <div class="step-marker"></div>
+                    <div class="step-content">
+                        <div class="step-title">
+                            ${step.title}
+                            <span class="step-meta" id="step-meta-${index}">Pending</span>
+                        </div>
+                        <div class="step-desc">${step.desc}</div>
+                    </div>
+                `;
+                stepsContainer.appendChild(node);
+            });
+
+            // Render Nodes Diagram in vertical stack
+            const diagramContainer = document.getElementById('diagram-nodes-container');
+            diagramContainer.innerHTML = '';
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'nodes-vertical-container';
+            
+            data.nodes.forEach((node, index) => {
+                const item = document.createElement('div');
+                item.className = 'diagram-node';
+                item.id = `diagram-node-${index}`;
+                item.innerHTML = `
+                    <h3>${node.name}</h3>
+                    <p>${node.desc}</p>
+                    <button class="hotspot-btn" onclick="openHotspot(${index})">
+                        🔍 Internals
+                    </button>
+                `;
+                wrapper.appendChild(item);
+                
+                // Render connecting arrow between nodes in vertical layout
+                if (index < data.nodes.length - 1) {
+                    const arrow = document.createElement('div');
+                    arrow.className = 'node-connector-arrow';
+                    arrow.id = `node-arrow-${index}`;
+                    arrow.innerText = '↓';
+                    wrapper.appendChild(arrow);
+                }
+            });
+            
+            diagramContainer.appendChild(wrapper);
+        }
+
+        function resetPipeline() {
+            currentStepIndex = 0;
+            updateStepView();
+            
+            const data = pipelineData[currentActivePipeline];
+            
+            // Reset steps meta descriptions
+            data.steps.forEach((_, idx) => {
+                const label = document.getElementById(`step-meta-${idx}`);
+                if (label) {
+                    label.innerText = 'Pending';
+                    label.style.color = 'var(--text-muted)';
+                    label.style.borderColor = 'var(--border-color)';
+                }
+                const stepNode = document.getElementById(`step-node-${idx}`);
+                if (stepNode) {
+                    stepNode.classList.remove('completed', 'active');
+                }
+            });
+
+            // Reset console logs
+            const consoleBox = document.getElementById('terminal-log-window');
+            consoleBox.innerHTML = `<div class="terminal-line system">Waiting for pipeline execution trigger...</div>`;
+            document.getElementById('terminal-job-status').innerText = 'IDLE';
+            document.getElementById('terminal-job-status').style.color = 'var(--text-muted)';
+            
+            // Reset nodes
+            document.querySelectorAll('.diagram-node').forEach(node => node.classList.remove('active'));
+            document.querySelectorAll('.node-connector-arrow').forEach(a => a.classList.remove('active'));
+
+            updateProgressFill(0);
+        }
+
+        function updateStepView() {
+            const data = pipelineData[currentActivePipeline];
+            const steps = data.steps;
+            const currentStep = steps[currentStepIndex];
+            
+            if (!currentStep) return;
+
+            document.getElementById('step-counter').innerText = `Step: ${currentStepIndex + 1} / ${steps.length}`;
+
+            // Update Timeline steps visual
+            steps.forEach((_, idx) => {
+                const stepNode = document.getElementById(`step-node-${idx}`);
+                const meta = document.getElementById(`step-meta-${idx}`);
+                
+                if (idx < currentStepIndex) {
+                    stepNode.classList.add('completed');
+                    stepNode.classList.remove('active');
+                    meta.innerText = 'Success';
+                    meta.style.color = 'var(--success-color)';
+                    meta.style.borderColor = 'var(--success-color)';
+                } else if (idx === currentStepIndex) {
+                    stepNode.classList.add('active');
+                    stepNode.classList.remove('completed');
+                    meta.innerText = 'Running';
+                    meta.style.color = currentActivePipeline === 'jenkins' ? 'var(--jenkins-accent)' : 'var(--success-color)';
+                    meta.style.borderColor = currentActivePipeline === 'jenkins' ? 'var(--jenkins-accent)' : 'var(--success-color)';
+                } else {
+                    stepNode.classList.remove('active', 'completed');
+                    meta.innerText = 'Pending';
+                    meta.style.color = 'var(--text-muted)';
+                    meta.style.borderColor = 'var(--border-color)';
+                }
+            });
+
+            // Update code viewer code content
+            document.getElementById('code-filename-label').innerText = currentStep.filename;
+            document.getElementById('code-codeblock').innerHTML = currentStep.code;
+            
+            // Add highlight class to lines
+            const lines = document.getElementById('code-codeblock').innerHTML.split('\n');
+            const highlightedHTML = lines.map(line => `<span class="code-line highlight">${line}</span>`).join('\n');
+            document.getElementById('code-codeblock').innerHTML = highlightedHTML;
+
+            // Output simulation log
+            const consoleBox = document.getElementById('terminal-log-window');
+            
+            // If it is step 0, clear console first
+            if (currentStepIndex === 0) {
+                consoleBox.innerHTML = '';
+            }
+
+            document.getElementById('terminal-job-status').innerText = 'EXECUTING';
+            document.getElementById('terminal-job-status').style.color = 'var(--warning-color)';
+
+            currentStep.log.forEach(item => {
+                const line = document.createElement('div');
+                line.className = `terminal-line ${item.type}`;
+                line.innerText = item.text;
+                consoleBox.appendChild(line);
+            });
+
+            // Scroll console to bottom
+            consoleBox.scrollTop = consoleBox.scrollHeight;
+
+            // Highlight Active Diagram Node
+            document.querySelectorAll('.diagram-node').forEach((node, idx) => {
+                if (idx === currentStep.diagramActiveNode) {
+                    node.classList.add('active');
+                } else {
+                    node.classList.remove('active');
+                }
+            });
+
+            // Highlight active connector arrows in vertical layout
+            for (let idx = 0; idx < data.nodes.length - 1; idx++) {
+                const arrow = document.getElementById(`node-arrow-${idx}`);
+                if (arrow) {
+                    if (idx < currentStep.diagramActiveNode) {
+                        arrow.classList.add('active');
+                    } else {
+                        arrow.classList.remove('active');
+                    }
+                }
+            }
+
+            updateProgressFill((currentStepIndex + 1) / steps.length * 100);
+
+            // Handle final step finish status
+            if (currentStepIndex === steps.length - 1) {
+                document.getElementById('terminal-job-status').innerText = 'SUCCESS';
+                document.getElementById('terminal-job-status').style.color = 'var(--success-color)';
+            }
+        }
+
+        function updateProgressFill(percentage) {
+            const bar = document.getElementById('progress-bar-fill');
+            bar.style.width = `${percentage}%`;
+            if (currentActivePipeline === 'jenkins') {
+                bar.style.backgroundColor = 'var(--jenkins-accent)';
+            } else {
+                bar.style.backgroundColor = 'var(--success-color)';
+            }
+        }
+
+        function selectStep(index) {
+            if (isPlaying) {
+                togglePlay();
+            }
+            currentStepIndex = index;
+            
+            // Fast-fill previous logs
+            const consoleBox = document.getElementById('terminal-log-window');
+            consoleBox.innerHTML = '';
+            const data = pipelineData[currentActivePipeline];
+            for (let i = 0; i <= index; i++) {
+                data.steps[i].log.forEach(item => {
+                    const line = document.createElement('div');
+                    line.className = `terminal-line ${item.type}`;
+                    line.innerText = item.text;
+                    consoleBox.appendChild(line);
+                });
+            }
+            
+            updateStepView();
+        }
+
+        function nextStep() {
+            const steps = pipelineData[currentActivePipeline].steps;
+            if (currentStepIndex < steps.length - 1) {
+                currentStepIndex++;
+                updateStepView();
+            } else {
+                if (isPlaying) {
+                    togglePlay(); // Stop when ending
+                }
+            }
+        }
+
+        function prevStep() {
+            if (currentStepIndex > 0) {
+                currentStepIndex--;
+                
+                // Redraw logs up to this point
+                const consoleBox = document.getElementById('terminal-log-window');
+                consoleBox.innerHTML = '';
+                const data = pipelineData[currentActivePipeline];
+                for (let i = 0; i <= currentStepIndex; i++) {
+                    data.steps[i].log.forEach(item => {
+                        const line = document.createElement('div');
+                        line.className = `terminal-line ${item.type}`;
+                        line.innerText = item.text;
+                        consoleBox.appendChild(line);
+                    });
+                }
+                
+                updateStepView();
+            }
+        }
+
+        function togglePlay() {
+            const btn = document.getElementById('play-btn');
+            const icon = document.getElementById('play-icon');
+            const text = document.getElementById('play-text');
+            
+            isPlaying = !isPlaying;
+            
+            if (isPlaying) {
+                icon.innerText = '⏸️';
+                text.innerText = 'Pause';
+                btn.style.backgroundColor = 'var(--bg-primary)';
+                btn.style.borderColor = 'var(--border-color)';
+                
+                // If we are at the end, reset first
+                const steps = pipelineData[currentActivePipeline].steps;
+                if (currentStepIndex === steps.length - 1) {
+                    resetPipeline();
+                }
+
+                playInterval = setInterval(() => {
+                    nextStep();
+                }, playbackDelay);
+            } else {
+                icon.innerText = '▶️';
+                text.innerText = 'Play';
+                const activeColor = currentActivePipeline === 'jenkins' ? 'var(--jenkins-blue)' : 'var(--success-color)';
+                btn.style.backgroundColor = activeColor;
+                btn.style.borderColor = activeColor;
+                
+                clearInterval(playInterval);
+            }
+        }
+
+        function changeSpeed(val) {
+            playbackDelay = parseInt(val);
+            if (isPlaying) {
+                // Restart interval with new delay
+                clearInterval(playInterval);
+                playInterval = setInterval(() => {
+                    nextStep();
+                }, playbackDelay);
+            }
+        }
+
+        // Hotspot Modal Functions
+        function openHotspot(nodeIndex) {
+            const nodeData = pipelineData[currentActivePipeline].nodes[nodeIndex];
+            if (!nodeData) return;
+
+            // Stop play execution if running
+            if (isPlaying) {
+                togglePlay();
+            }
+
+            document.getElementById('modal-node-title').innerHTML = `🔍 Internals: ${nodeData.name}`;
+            document.getElementById('modal-node-content').innerHTML = nodeData.details;
+
+            const modalOverlay = document.getElementById('deep-dive-modal');
+            modalOverlay.style.display = 'flex';
+            setTimeout(() => {
+                modalOverlay.classList.add('active');
+            }, 10);
+        }
+
+        function closeModal() {
+            const modalOverlay = document.getElementById('deep-dive-modal');
+            modalOverlay.classList.remove('active');
+            setTimeout(() => {
+                modalOverlay.style.display = 'none';
+            }, 300);
+        }
+
+        // Scaling Guide Modal Functions
+        function openScalingGuide() {
+            if (isPlaying) {
+                togglePlay();
+            }
+            const modal = document.getElementById('scaling-modal');
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.classList.add('active');
+            }, 10);
+        }
+
+        function closeScalingModal() {
+            const modal = document.getElementById('scaling-modal');
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+        }
+
+        // Zoom Modal Functions
+        function zoomCode() {
+            if (isPlaying) {
+                togglePlay();
+            }
+            const filename = document.getElementById('code-filename-label').innerText;
+            const codeHTML = document.getElementById('code-codeblock').innerHTML;
+            
+            document.getElementById('zoom-modal-title').innerHTML = `⛶ Code: ${filename}`;
+            document.getElementById('zoom-modal-content').innerHTML = `<pre style="white-space: pre-wrap; word-break: break-all;"><code>${codeHTML}</code></pre>`;
+            
+            openZoomModal();
+        }
+
+        function zoomLogs() {
+            if (isPlaying) {
+                togglePlay();
+            }
+            const logsHTML = document.getElementById('terminal-log-window').innerHTML;
+            
+            document.getElementById('zoom-modal-title').innerHTML = `⛶ Live Execution Logs`;
+            document.getElementById('zoom-modal-content').innerHTML = `<pre style="white-space: pre-wrap; background-color: var(--bg-tertiary); color: #e2e8f0;">${logsHTML}</pre>`;
+            
+            openZoomModal();
+        }
+
+        function openZoomModal() {
+            const modal = document.getElementById('zoom-modal');
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.classList.add('active');
+            }, 10);
+        }
+
+        function closeZoomModal() {
+            const modal = document.getElementById('zoom-modal');
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+        }
+
+        // Esc key listener globally
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+                closeScalingModal();
+                closeZoomModal();
+            }
+        });
+    </script>
+</body>
+</html>

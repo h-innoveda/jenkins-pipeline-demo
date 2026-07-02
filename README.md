@@ -4,6 +4,7 @@ This repository demonstrates how to create a **production-ready Jenkins pipeline
 
 ## 📋 Table of Contents
 
+- [Interactive Pipeline Visualizer](#-interactive-pipeline-visualizer)
 - [Overview](#overview)
 - [Architecture](#architecture)
 - [Repository Structure](#repository-structure)
@@ -12,6 +13,24 @@ This repository demonstrates how to create a **production-ready Jenkins pipeline
 - [Pipeline Flow](#pipeline-flow)
 - [Files Explained](#files-explained)
 - [Troubleshooting](#troubleshooting)
+
+---
+
+## 🎨 Interactive Pipeline Visualizer
+
+This project includes an **interactive, animated flow visualizer** built directly in HTML/CSS/JS. It maps out how the Jenkins dynamic `load()` loader pipeline and the GitHub Actions workflow function side-by-side. 
+
+It synchronizes execution stages with:
+* Active physical architecture highlights.
+* The exact code block/syntax (Groovy or YAML) running.
+* A live simulated terminal execution output.
+
+### How to use it:
+1. Open the [visualizer.html](file:///d:/My%20projects/Jenkins-Projects/jenkins-pipeline-demo/visualizer.html) file directly in any web browser.
+2. Select your pipeline at the top (Jenkins or GitHub Actions).
+3. Use the playback controls (Play, Next, Prev, Reset) or click on any stage to explore the step-by-step pipeline execution.
+
+*Note: The visualizer is fully mobile-responsive and collapses into a single-column flow timeline on small screens.*
 
 ---
 
