@@ -30,7 +30,7 @@ jobs:
       - name: Prepare Pages Artifacts
         run: |
           mkdir -p deploy_out
-          cp visualizer.html deploy_out/index.html
+          cp visualizer/index.html deploy_out/index.html
           # Copy assets if they exist to keep the layout complete
           if [ -d "assets" ]; then cp -r assets deploy_out/; fi
 

@@ -26,7 +26,7 @@ It synchronizes execution stages with:
 * A live simulated terminal execution output.
 
 ### How to use it:
-1. Open the [visualizer.html](file:///d:/My%20projects/Jenkins-Projects/jenkins-pipeline-demo/visualizer.html) file directly in any web browser.
+1. Open the [index.html](file:///d:/My%20projects/Jenkins-Projects/jenkins-pipeline-demo/visualizer/index.html) file inside the `visualizer/` folder directly in any web browser.
 2. Select your pipeline at the top (Jenkins or GitHub Actions).
 3. Use the playback controls (Play, Next, Prev, Reset) or click on any stage to explore the step-by-step pipeline execution.
 
